@@ -45,7 +45,7 @@ test: ## Run backend test suite (pytest)
 # ------------------------------------------------------------------ run ---------
 .PHONY: dev-backend
 dev-backend: ## Run FastAPI with reload (http://localhost:8000)
-	cd $(BACKEND) && $(UV) run uvicorn app.main:app --reload --port 8000
+	cd $(BACKEND) && $(UV) run python -m uvicorn app.main:app --reload --port 8000
 
 .PHONY: dev-frontend
 dev-frontend: ## Run Vite dev server (http://localhost:5173)
@@ -53,11 +53,11 @@ dev-frontend: ## Run Vite dev server (http://localhost:5173)
 
 .PHONY: migrate
 migrate: ## Apply Alembic migrations
-	cd $(BACKEND) && $(UV) run alembic upgrade head
+	cd $(BACKEND) && $(UV) run python -m alembic upgrade head
 
 .PHONY: revision
 revision: ## Create an Alembic autogenerate revision (m="message")
-	cd $(BACKEND) && $(UV) run alembic revision --autogenerate -m "$(m)"
+	cd $(BACKEND) && $(UV) run python -m alembic revision --autogenerate -m "$(m)"
 
 # ------------------------------------------------------------------ ci ----------
 .PHONY: check
