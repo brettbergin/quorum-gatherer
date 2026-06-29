@@ -1,113 +1,182 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import type { SettingsOut } from '../types'
+import type { ProviderSetting, SettingsOut } from '../types'
 
-interface Draft {
-  api_key: string
-  default_model: string
-  is_enabled: boolean
+type Status = 'idle' | 'applying' | 'ok' | 'error'
+
+function errText(e: unknown): string {
+  const m = e instanceof Error ? e.message : String(e)
+  const i = m.indexOf('{')
+  if (i >= 0) {
+    try {
+      return JSON.parse(m.slice(i)).detail ?? m
+    } catch {
+      /* fall through */
+    }
+  }
+  return m
 }
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<SettingsOut | null>(null)
-  const [draft, setDraft] = useState<Record<string, Draft>>({})
-  const [saving, setSaving] = useState<string | null>(null)
+  const [provider, setProvider] = useState<string>('')
+  const [apiKey, setApiKey] = useState('')
+  const [model, setModel] = useState('')
+  const [status, setStatus] = useState<Status>('idle')
+  const [message, setMessage] = useState('')
 
-  const load = () =>
+  const settingFor = (p: string, d = data): ProviderSetting | undefined =>
+    d?.settings.find((s) => s.provider === p)
+  const specFor = (p: string, d = data) => d?.providers.find((s) => s.key === p)
+
+  const selectProvider = (p: string, d = data) => {
+    setProvider(p)
+    setApiKey('')
+    setModel(settingFor(p, d)?.default_model ?? '')
+    setStatus('idle')
+    setMessage('')
+  }
+
+  const load = (keepSelection = false) =>
     api.getSettings().then((d) => {
       setData(d)
-      const next: Record<string, Draft> = {}
-      for (const spec of d.providers) {
-        const existing = d.settings.find((s) => s.provider === spec.key)
-        next[spec.key] = {
-          api_key: '',
-          default_model: existing?.default_model ?? '',
-          is_enabled: existing?.is_enabled ?? true,
-        }
+      if (!keepSelection) {
+        const first = d.settings.find((s) => s.is_enabled)?.provider ?? d.providers[0]?.key ?? ''
+        selectProvider(first, d)
       }
-      setDraft(next)
     })
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const save = async (provider: string) => {
-    setSaving(provider)
+  const current = settingFor(provider)
+  const spec = specFor(provider)
+
+  const apply = async () => {
+    setStatus('applying')
+    setMessage('Validating key with the provider…')
     try {
-      const d = draft[provider]
-      await api.putProvider({
-        provider,
-        api_key: d.api_key ? d.api_key : null,
-        default_model: d.default_model || null,
-        is_enabled: d.is_enabled,
-      })
-      await load()
-    } finally {
-      setSaving(null)
+      await api.applyProvider({ provider, api_key: apiKey || null, default_model: model || null })
+      await load(true)
+      setApiKey('')
+      setStatus('ok')
+      setMessage('Key validated — provider enabled.')
+    } catch (e) {
+      setStatus('error')
+      setMessage(errText(e))
     }
   }
 
-  const patch = (p: string, patch: Partial<Draft>) =>
-    setDraft((prev) => ({ ...prev, [p]: { ...prev[p], ...patch } }))
+  const disable = async () => {
+    setStatus('applying')
+    setMessage('')
+    try {
+      await api.disableProvider(provider)
+      await load(true)
+      setStatus('idle')
+      setMessage('Provider disabled.')
+    } catch (e) {
+      setStatus('error')
+      setMessage(errText(e))
+    }
+  }
 
   return (
     <div className="overlay" onClick={onClose}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <div className="dialog-head">
-          <h2>AI provider settings</h2>
+          <h2>AI provider</h2>
           <button className="ghost" onClick={onClose}>
             ✕
           </button>
         </div>
         <p className="muted">
-          Configure an API key for any provider. Agents use their own default provider when a
-          key is available, otherwise the first configured provider.
+          Choose a provider, paste its API key, and Apply. The key is validated with a real
+          call before it’s saved and enabled.
         </p>
-        {!data && <div className="muted">Loading…</div>}
-        {data?.providers.map((spec) => {
-          const existing = data.settings.find((s) => s.provider === spec.key)
-          const d = draft[spec.key]
-          if (!d) return null
-          return (
-            <div key={spec.key} className="provider-row">
-              <div className="provider-top">
-                <strong>{spec.label}</strong>
-                {existing?.has_key && <span className="badge completed">key set</span>}
+
+        {!data ? (
+          <div className="muted">Loading…</div>
+        ) : (
+          <div className="settings-form">
+            <label className="field">
+              <span>Provider</span>
+              <select value={provider} onChange={(e) => selectProvider(e.target.value)}>
+                {data.providers.map((p) => {
+                  const s = settingFor(p.key)
+                  const tag = s?.is_enabled ? ' ✓ enabled' : s?.has_key ? ' (disabled)' : ''
+                  return (
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                      {tag}
+                    </option>
+                  )
+                })}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>API key</span>
+              <input
+                type="password"
+                placeholder={
+                  current?.has_key ? '•••••••• stored — leave blank to reuse' : 'Paste API key'
+                }
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+
+            <label className="field">
+              <span>Model</span>
+              <input
+                list="model-suggestions"
+                placeholder={spec?.default_model ?? ''}
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+              />
+              <datalist id="model-suggestions">
+                {spec?.suggested_models.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </label>
+
+            <div className="settings-actions">
+              <div className="settings-state">
+                {current?.is_enabled ? (
+                  <span className="badge completed">enabled</span>
+                ) : current?.has_key ? (
+                  <span className="badge">disabled</span>
+                ) : (
+                  <span className="badge">not configured</span>
+                )}
               </div>
-              <div className="provider-fields">
-                <input
-                  type="password"
-                  placeholder={existing?.has_key ? '•••••••• (leave blank to keep)' : 'API key'}
-                  value={d.api_key}
-                  onChange={(e) => patch(spec.key, { api_key: e.target.value })}
-                />
-                <input
-                  list={`models-${spec.key}`}
-                  placeholder={spec.default_model}
-                  value={d.default_model}
-                  onChange={(e) => patch(spec.key, { default_model: e.target.value })}
-                />
-                <datalist id={`models-${spec.key}`}>
-                  {spec.suggested_models.map((m) => (
-                    <option key={m} value={m} />
-                  ))}
-                </datalist>
-                <label className="enabled">
-                  <input
-                    type="checkbox"
-                    checked={d.is_enabled}
-                    onChange={(e) => patch(spec.key, { is_enabled: e.target.checked })}
-                  />
-                  enabled
-                </label>
-                <button className="primary" disabled={saving === spec.key} onClick={() => save(spec.key)}>
-                  {saving === spec.key ? 'Saving…' : 'Save'}
-                </button>
-              </div>
+              <button
+                className="ghost"
+                disabled={status === 'applying' || !current?.has_key}
+                onClick={disable}
+              >
+                Disable
+              </button>
+              <button className="primary" disabled={status === 'applying'} onClick={apply}>
+                {status === 'applying' ? 'Validating…' : 'Apply'}
+              </button>
             </div>
-          )
-        })}
+
+            {message && (
+              <div className={`status-line ${status}`}>
+                {status === 'applying' && '⏳ '}
+                {status === 'ok' && '✓ '}
+                {status === 'error' && '⚠ '}
+                {message}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

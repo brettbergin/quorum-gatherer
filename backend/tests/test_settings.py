@@ -1,4 +1,4 @@
-"""Provider settings API + encryption-at-rest."""
+"""Provider settings API + encryption-at-rest (validation is a no-op in test-model mode)."""
 
 import pytest
 
@@ -14,14 +14,16 @@ async def test_lists_providers_and_agents(client):
 
 
 @pytest.mark.asyncio
-async def test_provider_setting_roundtrip_is_encrypted(client):
-    r = await client.put(
-        "/api/settings/providers",
+async def test_apply_validates_enables_and_encrypts(client):
+    r = await client.post(
+        "/api/settings/providers/apply",
         json={"provider": "openai", "api_key": "sk-secret-xyz", "default_model": "gpt-4o-mini"},
     )
     assert r.status_code == 200
     body = r.json()
-    assert body["has_key"] is True and body["default_model"] == "gpt-4o-mini"
+    assert body["has_key"] is True
+    assert body["is_enabled"] is True
+    assert body["default_model"] == "gpt-4o-mini"
 
     # The stored key must be ciphertext, and must decrypt back to the original.
     from app.core.db import SessionLocal
@@ -36,6 +38,27 @@ async def test_provider_setting_roundtrip_is_encrypted(client):
 
 
 @pytest.mark.asyncio
+async def test_apply_without_key_is_rejected(client):
+    r = await client.post("/api/settings/providers/apply", json={"provider": "google"})
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_disable_keeps_key_but_turns_off(client):
+    await client.post(
+        "/api/settings/providers/apply",
+        json={"provider": "anthropic", "api_key": "sk-abc"},
+    )
+    r = await client.post("/api/settings/providers/disable", json={"provider": "anthropic"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["is_enabled"] is False
+    assert body["has_key"] is True  # key retained
+
+
+@pytest.mark.asyncio
 async def test_unknown_provider_rejected(client):
-    r = await client.put("/api/settings/providers", json={"provider": "nope", "api_key": "x"})
+    r = await client.post(
+        "/api/settings/providers/apply", json={"provider": "nope", "api_key": "x"}
+    )
     assert r.status_code == 400

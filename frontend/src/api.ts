@@ -5,6 +5,7 @@ import type {
   ChatDetail,
   ChatOut,
   DocumentOut,
+  ProviderSetting,
   ReportOut,
   SettingsOut,
   WsEvent,
@@ -51,17 +52,24 @@ export const api = {
 
   getSettings: () => fetch('/api/settings/providers').then(json<SettingsOut>),
 
-  putProvider: (body: {
+  // Validate the key with a real call, then save + enable on success.
+  applyProvider: (body: {
     provider: string
     api_key?: string | null
     default_model?: string | null
-    is_enabled?: boolean
   }) =>
-    fetch('/api/settings/providers', {
-      method: 'PUT',
+    fetch('/api/settings/providers/apply', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then(json),
+    }).then(json<ProviderSetting>),
+
+  disableProvider: (provider: string) =>
+    fetch('/api/settings/providers/disable', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider }),
+    }).then(json<ProviderSetting>),
 }
 
 export function openChatSocket(chatId: string, onEvent: (ev: WsEvent) => void): WebSocket {

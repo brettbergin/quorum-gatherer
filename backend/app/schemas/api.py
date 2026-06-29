@@ -46,6 +46,18 @@ class ProviderSettingIn(BaseModel):
     is_enabled: bool = True
 
 
+class ProviderApplyIn(BaseModel):
+    """Validate a provider key (real test call) and, on success, save + enable it."""
+
+    provider: str
+    api_key: str | None = None  # blank = reuse the stored key
+    default_model: str | None = None
+
+
+class ProviderRef(BaseModel):
+    provider: str
+
+
 class SettingsOut(BaseModel):
     providers: list[ProviderSpecOut]
     settings: list[ProviderSettingOut]

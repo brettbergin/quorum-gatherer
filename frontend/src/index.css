@@ -394,28 +394,53 @@ textarea:focus {
   margin: 0;
   font-size: 18px;
 }
-.provider-row {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
-  margin-top: 12px;
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
 }
-.provider-top {
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field > span {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.field select,
+.field input {
+  width: 100%;
+}
+.settings-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-top: 4px;
 }
-.provider-fields {
-  display: grid;
-  grid-template-columns: 2fr 1.4fr auto auto;
-  gap: 8px;
-  align-items: center;
+.settings-state {
+  flex: 1;
 }
-.enabled {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.status-line {
   font-size: 13px;
-  color: var(--muted);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.status-line.ok {
+  color: var(--green);
+  border-color: var(--green);
+  background: rgba(70, 198, 107, 0.1);
+}
+.status-line.error {
+  color: var(--red);
+  border-color: var(--red);
+  background: rgba(229, 103, 95, 0.1);
+}
+.status-line.applying {
+  color: var(--amber);
+  border-color: var(--amber);
 }
