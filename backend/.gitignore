@@ -1,0 +1,8 @@
+# SQLite databases (dev)
+*.db
+*.db-journal
+*.sqlite3
+
+# uv / build
+.venv/
+*.egg-info/
