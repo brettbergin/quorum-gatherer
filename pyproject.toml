@@ -2,7 +2,7 @@
 # Members share one virtualenv; quorum_core is the shared library both apps depend on.
 [project]
 name = "quorum-gatherer"
-version = "0.1.0"
+version = "0.1.1"
 requires-python = ">=3.11"
 
 [tool.uv]

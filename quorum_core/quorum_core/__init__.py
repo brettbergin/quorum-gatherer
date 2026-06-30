@@ -1,3 +1,3 @@
 """quorum_core — shared data model + council engine for all quorum-gatherer apps."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

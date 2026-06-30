@@ -1,6 +1,6 @@
 [project]
 name = "quorum-gatherer-backend"
-version = "0.1.0"
+version = "0.1.1"
 description = "Product Strategy Council — FastAPI web shell over quorum_core."
 readme = "README.md"
 requires-python = ">=3.11"
