@@ -36,7 +36,8 @@ class AgentTransactionDialog(QDialog):
     def __init__(self, parent, data: dict) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"{data.get('agent_name') or 'Agent'} — LLM transaction")
-        self.setMinimumSize(QSize(820, 640))
+        self.setMinimumSize(QSize(700, 540))
+        self.resize(1040, 800)
 
         layout = QVBoxLayout(self)
 

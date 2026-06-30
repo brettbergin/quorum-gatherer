@@ -63,7 +63,8 @@ class AgentEditDialog(QDialog):
         self._creating = self._key is None
         self._original_prompt = self._data.get("system_prompt", "")
         self.setWindowTitle("Add agent" if self._creating else f"Edit — {self._data.get('name')}")
-        self.setMinimumSize(QSize(820, 720))
+        self.setMinimumSize(QSize(720, 600))
+        self.resize(1060, 880)
 
         layout = QVBoxLayout(self)
 
