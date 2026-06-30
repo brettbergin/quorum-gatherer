@@ -23,7 +23,8 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Settings")
-        self.setMinimumSize(QSize(680, 440))
+        self.setMinimumSize(QSize(720, 480))
+        self.resize(1060, 740)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

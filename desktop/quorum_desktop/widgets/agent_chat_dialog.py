@@ -71,7 +71,8 @@ class AgentChatDialog(QDialog):
         self._agent_key = agent_key
         self._agent_name = data.get("agent_name") or agent_key
         self.setWindowTitle(f"{self._agent_name} — discussion")
-        self.setMinimumSize(QSize(720, 640))
+        self.setMinimumSize(QSize(640, 520))
+        self.resize(960, 820)
         self._live_view = None  # the in-progress agent bubble while it streams a live deliberation
         self._live_acc: list[str] = []
 

@@ -42,7 +42,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"quorum-gatherer — Product Strategy Council  (v{__version__})")
-        self.resize(1180, 800)
+        self.resize(1480, 940)
+        self.setMinimumSize(1100, 720)
 
         self._chat_id: str | None = None
         self._bridge: CouncilBridge | None = None
