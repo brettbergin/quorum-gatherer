@@ -42,7 +42,10 @@ class _BubbleBody(MarkdownView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.document().setDocumentMargin(0)
-        self.setStyleSheet("background:transparent; border:none;")
+        # Reset the global QTextBrowser padding/border from the theme: the enclosing bubble
+        # QFrame already supplies the inner margins, and any padding here is space that _fit()
+        # doesn't account for (it sizes to document().size()), which clips/pads every message.
+        self.setStyleSheet("background:transparent; border:none; padding:0;")
 
     def setMarkdown(self, markdown: str) -> None:  # noqa: N802 - Qt override
         super().setMarkdown(markdown)
