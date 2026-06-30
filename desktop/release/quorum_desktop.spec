@@ -8,7 +8,12 @@
 
 import os
 
-from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import (
+    collect_all,
+    collect_data_files,
+    collect_submodules,
+    copy_metadata,
+)
 
 # SPECPATH is injected by PyInstaller and points at this file's directory
 # (.../desktop/release), so paths resolve no matter the current working directory.
@@ -27,33 +32,45 @@ hiddenimports = []
 datas += collect_data_files("quorum_core")
 datas += collect_data_files("quorum_core", include_py_files=True, includes=["migrations/*"])
 
-# Provider SDKs are imported lazily by pydantic-ai, so static analysis misses them.
-# Pull each in whole (submodules + data + shared libs). anthropic/openai/google arrive as
-# pydantic-ai dependencies and may be absent depending on installed extras — tolerate that.
-for pkg in ("pydantic_ai", "anthropic", "openai", "groq", "mistralai", "cohere"):
+# These are imported lazily by pydantic-ai's provider backends or pulled in dynamically
+# (SQLAlchemy's DBAPI driver + greenlet C-extension), so static analysis misses them.
+# Collect each whole, but drop test submodules: google.genai ships a large test suite that
+# would otherwise balloon — and stall — the build.
+def _is_test_module(name):
+    return ".tests" in name or ".test_" in name or name.endswith(".tests")
+
+
+def _collect(pkg):
     try:
         pkg_datas, pkg_binaries, pkg_hidden = collect_all(pkg)
-        datas += pkg_datas
-        binaries += pkg_binaries
-        hiddenimports += pkg_hidden
     except Exception:
-        pass
+        return [], [], []  # optional provider extra not installed — fine
+    return pkg_datas, pkg_binaries, [m for m in pkg_hidden if not _is_test_module(m)]
 
-# google-genai is published under a couple of import names across versions.
-for pkg in ("google.genai", "google.generativeai"):
-    try:
-        hiddenimports += collect_submodules(pkg)
-    except Exception:
-        pass
 
-# SQLAlchemy reaches for these dynamically (the aiosqlite DBAPI driver by name, and
-# the greenlet C-extension for its async engine), so static analysis misses them.
-hiddenimports += collect_submodules("aiosqlite")
-for pkg in ("greenlet", "sqlalchemy"):
-    pkg_datas, pkg_binaries, pkg_hidden = collect_all(pkg)
+runtime_pkgs = (
+    "pydantic_ai",  # core agent framework (the selftest exercises its TestModel)
+    "anthropic",
+    "openai",
+    "groq",
+    "mistralai",
+    "cohere",
+    "google.genai",  # provider SDKs, imported lazily
+    "greenlet",
+    "sqlalchemy",  # SQLAlchemy async engine internals
+)
+for pkg in runtime_pkgs:
+    pkg_datas, pkg_binaries, pkg_hidden = _collect(pkg)
     datas += pkg_datas
     binaries += pkg_binaries
     hiddenimports += pkg_hidden
+
+# aiosqlite is the sqlite+aiosqlite DBAPI driver SQLAlchemy loads by name.
+hiddenimports += [m for m in collect_submodules("aiosqlite") if not _is_test_module(m)]
+
+# pydantic-ai and some deps (e.g. genai_prices) read their own version via
+# importlib.metadata at import, which needs the .dist-info metadata bundled.
+datas += copy_metadata("pydantic_ai", recursive=True)
 
 a = Analysis(
     [os.path.join(DESKTOP, "run.py")],
@@ -64,7 +81,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["tkinter"],
+    excludes=["tkinter", "google.genai.tests"],
     noarchive=False,
 )
 
