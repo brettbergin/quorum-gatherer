@@ -1,6 +1,7 @@
 """Provider configuration API.
 
 - GET  /providers          list providers + current settings
+- POST /providers/models   fetch a provider's live model catalog (also validates the key)
 - POST /providers/apply    validate a key (real call) then save + enable on success
 - POST /providers/disable  disable a provider (keeps the stored key)
 """
@@ -8,25 +9,36 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from quorum_core.agents.catalog import CatalogError
+from quorum_core.agents.provider import ProviderError, list_provider_specs
+from quorum_core.core.db import get_session
+from quorum_core.models import ProviderSetting, User
+from quorum_core.services.settings_service import (
+    apply_provider as svc_apply_provider,
+)
+from quorum_core.services.settings_service import (
+    disable_provider as svc_disable_provider,
+)
+from quorum_core.services.settings_service import (
+    fetch_provider_models as svc_fetch_provider_models,
+)
+from quorum_core.services.settings_service import (
+    list_provider_settings,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.provider import PROVIDERS, list_provider_specs
-from app.agents.validation import validate_provider_key
 from app.api.deps import get_current_user
-from app.core.db import get_session
-from app.core.security import decrypt
-from app.models import ProviderSetting, User
 from app.schemas.api import (
+    ModelCatalogOut,
+    ModelInfoOut,
     ProviderApplyIn,
+    ProviderModelsIn,
     ProviderRef,
     ProviderSettingOut,
     ProviderSpecOut,
+    ReasoningSpecOut,
     SettingsOut,
-)
-from app.services.settings_service import (
-    list_provider_settings,
-    upsert_provider_setting,
 )
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -36,6 +48,9 @@ def _to_out(row: ProviderSetting) -> ProviderSettingOut:
     return ProviderSettingOut(
         provider=row.provider,
         default_model=row.default_model,
+        reasoning=row.reasoning,
+        chairman_model=row.chairman_model,
+        chairman_reasoning=row.chairman_reasoning,
         is_enabled=row.is_enabled,
         has_key=bool(row.api_key_encrypted),
     )
@@ -62,11 +77,37 @@ async def get_providers(
             label=s.label,
             default_model=s.default_model,
             suggested_models=list(s.suggested_models),
+            reasoning=ReasoningSpecOut(
+                kind=s.reasoning.kind,
+                settings_key=s.reasoning.settings_key,
+                efforts=list(s.reasoning.efforts),
+                budget_min=s.reasoning.budget_min,
+                budget_max=s.reasoning.budget_max,
+                budget_default=s.reasoning.budget_default,
+                model_pattern=s.reasoning.model_pattern,
+            ),
         )
         for s in list_provider_specs()
     ]
     rows = await list_provider_settings(session, user.id)
     return SettingsOut(providers=specs, settings=[_to_out(r) for r in rows])
+
+
+@router.post("/providers/models", response_model=ModelCatalogOut)
+async def fetch_provider_models(
+    body: ProviderModelsIn,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> ModelCatalogOut:
+    try:
+        models = await svc_fetch_provider_models(
+            session, user.id, body.provider, api_key=body.api_key
+        )
+    except CatalogError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ProviderError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ModelCatalogOut(models=[ModelInfoOut(**m) for m in models])
 
 
 @router.post("/providers/apply", response_model=ProviderSettingOut)
@@ -75,37 +116,20 @@ async def apply_provider(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> ProviderSettingOut:
-    spec = PROVIDERS.get(body.provider)
-    if spec is None:
-        raise HTTPException(status_code=400, detail=f"unknown provider '{body.provider}'")
-
-    existing = await _get_setting(session, user.id, body.provider)
-
-    # Use the supplied key, otherwise reuse the stored one.
-    key = body.api_key or (
-        decrypt(existing.api_key_encrypted) if existing and existing.api_key_encrypted else None
-    )
-    if not key:
-        raise HTTPException(status_code=400, detail="An API key is required.")
-
-    model = (
-        body.default_model or (existing.default_model if existing else None) or spec.default_model
-    )
-
-    ok, error = await validate_provider_key(body.provider, model, key)
-    if not ok:
-        raise HTTPException(status_code=400, detail=f"Key validation failed: {error}")
-
-    row = await upsert_provider_setting(
+    ok, error = await svc_apply_provider(
         session,
         user.id,
         body.provider,
-        api_key=body.api_key or None,  # None = keep the existing encrypted key
+        api_key=body.api_key,
         default_model=body.default_model,
-        is_enabled=True,
+        reasoning=body.reasoning,
+        chairman_model=body.chairman_model,
+        chairman_reasoning=body.chairman_reasoning,
     )
+    if not ok:
+        raise HTTPException(status_code=400, detail=error or "could not enable provider")
     await session.commit()
-    return _to_out(row)
+    return _to_out(await _get_setting(session, user.id, body.provider))
 
 
 @router.post("/providers/disable", response_model=ProviderSettingOut)
@@ -114,9 +138,7 @@ async def disable_provider(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> ProviderSettingOut:
-    existing = await _get_setting(session, user.id, body.provider)
-    if existing is None:
+    if not await svc_disable_provider(session, user.id, body.provider):
         raise HTTPException(status_code=404, detail="provider not configured")
-    existing.is_enabled = False
     await session.commit()
-    return _to_out(existing)
+    return _to_out(await _get_setting(session, user.id, body.provider))

@@ -1,8 +1,10 @@
 # quorum-gatherer — developer task runner
-# Backend uses uv + ruff + pytest; frontend uses npm + vite.
+# uv workspace (quorum_core + backend + desktop) at the repo root; frontend uses npm + vite.
 
 BACKEND  := backend
 FRONTEND := frontend
+DESKTOP  := desktop
+PYDIRS   := quorum_core backend desktop
 UV       := uv
 
 .DEFAULT_GOAL := help
@@ -14,11 +16,11 @@ help: ## Show this help
 
 # ---------------------------------------------------------------- setup --------
 .PHONY: install
-install: install-backend install-frontend ## Install all dependencies
+install: install-py install-frontend ## Install all dependencies
 
-.PHONY: install-backend
-install-backend: ## Create venv + install backend (uv, includes dev group)
-	cd $(BACKEND) && $(UV) sync
+.PHONY: install-py
+install-py: ## Create the workspace venv + install all members (uv)
+	$(UV) sync --all-packages
 
 .PHONY: install-frontend
 install-frontend: ## Install frontend deps (npm)
@@ -26,21 +28,21 @@ install-frontend: ## Install frontend deps (npm)
 
 # ----------------------------------------------------------------- lint --------
 .PHONY: lint
-lint: ## Ruff lint (backend)
-	cd $(BACKEND) && $(UV) run ruff check .
+lint: ## Ruff lint (all Python packages)
+	$(UV) run ruff check $(PYDIRS)
 
 .PHONY: format
-format: ## Ruff format + autofix (backend)
-	cd $(BACKEND) && $(UV) run ruff format . && $(UV) run ruff check --fix .
+format: ## Ruff format + autofix
+	$(UV) run ruff format $(PYDIRS) && $(UV) run ruff check --fix $(PYDIRS)
 
 .PHONY: format-check
 format-check: ## Verify formatting without writing (CI)
-	cd $(BACKEND) && $(UV) run ruff format --check . && $(UV) run ruff check .
+	$(UV) run ruff format --check $(PYDIRS) && $(UV) run ruff check $(PYDIRS)
 
 # ----------------------------------------------------------------- test --------
 .PHONY: test
-test: ## Run backend test suite (pytest)
-	cd $(BACKEND) && $(UV) run python -m pytest
+test: ## Run the test suite (quorum_core + backend)
+	$(UV) run python -m pytest
 
 # ------------------------------------------------------------------ run ---------
 .PHONY: dev-backend
@@ -51,13 +53,17 @@ dev-backend: ## Run FastAPI with reload (http://localhost:8000)
 dev-frontend: ## Run Vite dev server (http://localhost:5173)
 	cd $(FRONTEND) && npm run dev
 
+.PHONY: dev-desktop
+dev-desktop: ## Run the native desktop app (dev)
+	$(UV) run python -m quorum_desktop.app
+
 .PHONY: migrate
-migrate: ## Apply Alembic migrations
-	cd $(BACKEND) && $(UV) run python -m alembic upgrade head
+migrate: ## Apply migrations to the backend's local SQLite
+	cd $(BACKEND) && $(UV) run python -c "from quorum_core.migrate import upgrade_to_head; upgrade_to_head()"
 
 .PHONY: revision
 revision: ## Create an Alembic autogenerate revision (m="message")
-	cd $(BACKEND) && $(UV) run python -m alembic revision --autogenerate -m "$(m)"
+	cd $(BACKEND) && $(UV) run alembic -c ../quorum_core/alembic.ini revision --autogenerate -m "$(m)"
 
 # ------------------------------------------------------------------ ci ----------
 .PHONY: check

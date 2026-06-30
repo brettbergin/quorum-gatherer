@@ -10,10 +10,10 @@ os.environ["QUORUM_USE_TEST_MODEL"] = "1"
 os.environ.pop("QUORUM_ANTHROPIC_API_KEY", None)
 
 import pytest_asyncio  # noqa: E402
-from app.agents.loader import load_agents  # noqa: E402
-from app.core.db import init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
+from quorum_core.agents.loader import load_agents  # noqa: E402
+from quorum_core.core.db import init_db  # noqa: E402
 
 
 @pytest_asyncio.fixture

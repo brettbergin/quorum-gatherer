@@ -1,0 +1,30 @@
+[project]
+name = "quorum-core"
+description = "Shared data model + council engine for quorum-gatherer (web + desktop)."
+dynamic = ["version"]
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "pydantic-ai>=2.0",
+    # Provider SDKs so anthropic/openai/google ship by default; groq/mistral/cohere selectable.
+    "groq>=0.11",
+    "mistralai>=1.2",
+    "cohere>=5.13",
+    "sqlalchemy>=2.0",
+    "aiosqlite>=0.20",
+    "alembic>=1.13",
+    "cryptography>=43",
+    "pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "quorum_core/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+# Includes the package plus its data files (agent_prompts/*.md, migrations/*).
+packages = ["quorum_core"]

@@ -6,14 +6,14 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from quorum_core.agents.orchestrator import run_council
+from quorum_core.core.db import get_session
+from quorum_core.models import Chat, ChatDocument, ChatStatus, CouncilReport, User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.agents.orchestrator import run_council
 from app.api.deps import get_current_user
-from app.core.db import get_session
-from app.models import Chat, ChatDocument, ChatStatus, CouncilReport, User
 from app.schemas.api import (
     ChatCreate,
     ChatDetail,
@@ -112,6 +112,10 @@ async def submit_item(
     user: User = Depends(get_current_user),
 ) -> dict[str, str]:
     chat = await _load_owned_chat(session, chat_id, user)
+    # Don't start a second council while one is already in flight for this chat (e.g. a
+    # double-click), which would race on persistence.
+    if chat.status == ChatStatus.running:
+        return {"status": "already_running", "chat_id": chat_id}
     chat.idea = body.idea
     chat.status = ChatStatus.created
     await session.commit()
