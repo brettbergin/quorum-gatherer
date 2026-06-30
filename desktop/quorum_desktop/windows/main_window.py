@@ -7,6 +7,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QDialog,
     QGridLayout,
     QHBoxLayout,
     QInputDialog,
@@ -49,9 +50,9 @@ class MainWindow(QMainWindow):
         self._bridge: CouncilBridge | None = None
         self._panels: dict[str, AgentPanel] = {}
         self._chat_titles: dict[str, str] = {}
-        self._session_dialog = None  # keeps the active rename/delete dialog alive
-        self._settings_dialog = None  # keeps the open settings dialog alive
-        self._chat_dialog = None  # the open AgentChatDialog (if any)
+        self._session_dialog: QDialog | None = None  # keeps the active rename/delete dialog alive
+        self._settings_dialog: SettingsDialog | None = None  # keeps the open settings dialog alive
+        self._chat_dialog: AgentChatDialog | None = None  # the open AgentChatDialog (if any)
         self._chat_dialog_key: str | None = None  # which agent it's showing
         self._running_agents: set[str] = set()  # agents currently streaming a deliberation
 
@@ -136,6 +137,8 @@ class MainWindow(QMainWindow):
         loaded/seeded and whenever the roster changes, so new agents appear without a restart."""
         while self._grid.count():
             item = self._grid.takeAt(0)
+            if item is None:
+                continue
             w = item.widget()
             if w is not None:
                 w.deleteLater()
@@ -279,10 +282,14 @@ class MainWindow(QMainWindow):
         text = Path(path).read_text(encoding="utf-8", errors="replace")
         await engine.add_document(self._chat_id, Path(path).name, text)
         d = await engine.get_chat(self._chat_id)
+        if d is None:
+            return
         self._composer.set_documents([doc["filename"] for doc in d["documents"]])
 
     def _start_bridge(self) -> CouncilBridge:
         """Subscribe a fresh bridge to the chat's event stream and wire the live-view slots."""
+        if self._chat_id is None:
+            raise RuntimeError("Cannot start a bridge without an active chat.")
         if self._bridge is not None:
             self._bridge.stop()
         bridge = CouncilBridge(self._chat_id)
@@ -393,6 +400,7 @@ class MainWindow(QMainWindow):
     async def _open_agent_chat(self, agent_key: str) -> None:
         if not self._chat_id:
             return
+        chat_id = self._chat_id
         member = next((m for m in engine.registry().members if m.key == agent_key), None)
         # Fetch the conversation on the live loop, then render synchronously — qasync does not
         # pump asyncio inside a modal exec()'s nested loop, so we must not load there.
@@ -407,7 +415,7 @@ class MainWindow(QMainWindow):
             if self._chat_dialog is dialog:
                 self._chat_dialog = None
                 self._chat_dialog_key = None
-            _spawn(self._select_chat(self._chat_id))
+            _spawn(self._select_chat(chat_id))
 
         dialog.finished.connect(_on_closed)
         self._chat_dialog = dialog  # keep a reference so it isn't garbage-collected

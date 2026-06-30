@@ -36,7 +36,7 @@ def _selftest() -> int:
         cid = await engine.create_chat("selftest", "Validate the bundle", [("d.md", "ctx")])
         await engine.run(cid)
         d = await engine.get_chat(cid)
-        ok = bool(d and d["report_markdown"]) and len(d["runs"]) == 8
+        ok = d is not None and bool(d["report_markdown"]) and len(d["runs"]) == 8
         print("SELFTEST", "OK" if ok else "FAIL")
         return 0 if ok else 1
 

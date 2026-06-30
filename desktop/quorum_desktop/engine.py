@@ -164,6 +164,8 @@ async def add_document(chat_id: str, filename: str, text: str) -> None:
 async def set_idea(chat_id: str, idea: str) -> None:
     async with SessionLocal() as s:
         chat = await s.get(Chat, chat_id)
+        if chat is None:
+            raise ValueError(f"chat not found: {chat_id}")
         chat.idea = idea
         chat.status = ChatStatus.created
         await s.commit()

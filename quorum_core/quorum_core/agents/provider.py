@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic_ai.models import Model
+from pydantic_ai.providers import Provider
 
 from quorum_core.core.config import get_settings
 
@@ -191,7 +192,9 @@ def build_model(provider: str, model_name: str, api_key: str | None = None) -> M
             from pydantic_ai.models.anthropic import AnthropicModel
             from pydantic_ai.providers.anthropic import AnthropicProvider
 
-            prov = AnthropicProvider(api_key=api_key) if api_key else AnthropicProvider()
+            prov: Provider[Any] = (
+                AnthropicProvider(api_key=api_key) if api_key else AnthropicProvider()
+            )
             return AnthropicModel(model_name, provider=prov)
         if p == "openai":
             from pydantic_ai.models.openai import OpenAIChatModel
@@ -203,7 +206,10 @@ def build_model(provider: str, model_name: str, api_key: str | None = None) -> M
             from pydantic_ai.models.google import GoogleModel
             from pydantic_ai.providers.google import GoogleProvider
 
-            prov = GoogleProvider(api_key=api_key) if api_key else GoogleProvider()
+            # GoogleProvider() reads the key from env at runtime; stubs lack a no-arg overload.
+            prov = (
+                GoogleProvider(api_key=api_key) if api_key else GoogleProvider()  # type: ignore[call-overload]
+            )
             return GoogleModel(model_name, provider=prov)
         if p == "groq":
             from pydantic_ai.models.groq import GroqModel

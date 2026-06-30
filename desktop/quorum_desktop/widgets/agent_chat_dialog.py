@@ -73,7 +73,8 @@ class AgentChatDialog(QDialog):
         self.setWindowTitle(f"{self._agent_name} — discussion")
         self.setMinimumSize(QSize(640, 520))
         self.resize(960, 820)
-        self._live_view = None  # the in-progress agent bubble while it streams a live deliberation
+        # the in-progress agent bubble while it streams a live deliberation
+        self._live_view: _BubbleBody | None = None
         self._live_acc: list[str] = []
 
         layout = QVBoxLayout(self)
@@ -131,7 +132,7 @@ class AgentChatDialog(QDialog):
         for turn in turns:
             self._add_bubble(turn["role"], turn["content"])
 
-    def _add_bubble(self, role: str, content: str):
+    def _add_bubble(self, role: str, content: str) -> _BubbleBody:
         is_user = role == "user"
         bubble = QFrame()
         bubble.setObjectName("userBubble" if is_user else "agentBubble")
@@ -175,7 +176,8 @@ class AgentChatDialog(QDialog):
         if self._live_view is None:
             self.begin_live()
         self._live_acc.append(delta)
-        self._live_view.setPlainText("".join(self._live_acc))
+        if self._live_view is not None:
+            self._live_view.setPlainText("".join(self._live_acc))
         self._scroll_to_bottom()
 
     def end_live(self, text: str) -> None:

@@ -28,7 +28,7 @@ def _spawn(coro) -> None:
 class AgentsPage(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self._dialog = None  # keeps the open edit/confirm dialog alive
+        self._dialog: QWidget | None = None  # keeps the open edit/confirm dialog alive
 
         outer = QVBoxLayout(self)
         title = QLabel("Agents")

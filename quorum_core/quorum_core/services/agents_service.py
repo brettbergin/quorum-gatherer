@@ -132,7 +132,7 @@ async def delete_agent(session: AsyncSession, key: str) -> None:
     members = await session.scalar(
         select(func.count()).select_from(AgentConfig).where(AgentConfig.role == MEMBER_ROLE)
     )
-    if members <= 1:
+    if (members or 0) <= 1:
         raise AgentError("At least one council member is required.")
     await session.delete(row)
     await session.flush()

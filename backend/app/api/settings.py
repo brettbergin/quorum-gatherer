@@ -129,7 +129,10 @@ async def apply_provider(
     if not ok:
         raise HTTPException(status_code=400, detail=error or "could not enable provider")
     await session.commit()
-    return _to_out(await _get_setting(session, user.id, body.provider))
+    row = await _get_setting(session, user.id, body.provider)
+    if row is None:
+        raise HTTPException(status_code=404, detail="provider not configured")
+    return _to_out(row)
 
 
 @router.post("/providers/disable", response_model=ProviderSettingOut)
@@ -141,4 +144,7 @@ async def disable_provider(
     if not await svc_disable_provider(session, user.id, body.provider):
         raise HTTPException(status_code=404, detail="provider not configured")
     await session.commit()
-    return _to_out(await _get_setting(session, user.id, body.provider))
+    row = await _get_setting(session, user.id, body.provider)
+    if row is None:
+        raise HTTPException(status_code=404, detail="provider not configured")
+    return _to_out(row)
