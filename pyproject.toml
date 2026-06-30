@@ -3,7 +3,7 @@
 [project]
 name = "quorum-gatherer"
 version = "0.1.2"
-requires-python = ">=3.11"
+requires-python = ">=3.14,<3.15"
 
 [tool.uv]
 package = false
@@ -27,7 +27,7 @@ testpaths = ["quorum_core/tests", "backend/tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W", "C4", "SIM"]
