@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from fastapi import Depends
+from quorum_core.core.db import get_session
+from quorum_core.models import User
+from quorum_core.services.users import get_or_create_default_user
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.db import get_session
-from app.models import User
-from app.services.users import get_or_create_default_user
 
 
 async def get_current_user(session: AsyncSession = Depends(get_session)) -> User:

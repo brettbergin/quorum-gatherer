@@ -25,16 +25,32 @@ class AgentInfo(BaseModel):
 
 
 # ------------------------------------------------------------------ providers / settings
+class ReasoningSpecOut(BaseModel):
+    """Shape of a provider's raw reasoning knob, so clients can render the right control."""
+
+    kind: str  # "effort" | "thinking_budget" | "none"
+    settings_key: str
+    efforts: list[str]
+    budget_min: int
+    budget_max: int
+    budget_default: int
+    model_pattern: str  # regex; which catalog model ids expose the knob
+
+
 class ProviderSpecOut(BaseModel):
     key: str
     label: str
     default_model: str
     suggested_models: list[str]
+    reasoning: ReasoningSpecOut
 
 
 class ProviderSettingOut(BaseModel):
     provider: str
-    default_model: str | None
+    default_model: str | None  # council-member model
+    reasoning: str | None
+    chairman_model: str | None
+    chairman_reasoning: str | None
     is_enabled: bool
     has_key: bool
 
@@ -43,6 +59,9 @@ class ProviderSettingIn(BaseModel):
     provider: str
     api_key: str | None = None  # None = leave unchanged, "" = clear
     default_model: str | None = None
+    reasoning: str | None = None
+    chairman_model: str | None = None
+    chairman_reasoning: str | None = None
     is_enabled: bool = True
 
 
@@ -51,7 +70,27 @@ class ProviderApplyIn(BaseModel):
 
     provider: str
     api_key: str | None = None  # blank = reuse the stored key
-    default_model: str | None = None
+    default_model: str | None = None  # council-member model
+    reasoning: str | None = None
+    chairman_model: str | None = None
+    chairman_reasoning: str | None = None
+
+
+class ProviderModelsIn(BaseModel):
+    """Fetch a provider's live model catalog (also validates the key)."""
+
+    provider: str
+    api_key: str | None = None  # blank = reuse the stored key
+
+
+class ModelInfoOut(BaseModel):
+    id: str
+    label: str
+    supports_reasoning: bool
+
+
+class ModelCatalogOut(BaseModel):
+    models: list[ModelInfoOut]
 
 
 class ProviderRef(BaseModel):

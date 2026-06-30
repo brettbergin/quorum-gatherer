@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Desktop packaging / TUF (never commit private signing keys or workdir state)
+desktop/build/
+desktop/dist/
+desktop/release/tuf/keys/
+**/.tufup-repo-config
+tuf-state.*
+*.b64
+
+# Claude Code worktree artifacts
+.claude/worktrees/

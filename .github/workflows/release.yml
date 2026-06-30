@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # create releases / upload assets
+  pages: write      # publish TUF metadata
+  id-token: write
+
+env:
+  UV_PYTHON: "3.13"
+
+jobs:
+  # ------------------------------------------------------------------ build artifacts
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            tag: macos
+          - os: windows-latest
+            tag: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Derive version from tag
+        id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp quorum_core version
+        shell: bash
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          uv run python - <<'PY'
+          import os, pathlib, re
+          v = os.environ["VERSION"]
+          p = pathlib.Path("quorum_core/quorum_core/__init__.py")
+          p.write_text(re.sub(r'__version__ = "[^"]*"', f'__version__ = "{v}"', p.read_text()))
+          print("stamped", v)
+          PY
+
+      - name: Install workspace
+        run: uv sync --all-packages
+
+      - name: Build desktop bundle (PyInstaller)
+        working-directory: desktop
+        run: uv run pyinstaller release/quorum_desktop.spec --noconfirm
+
+      - name: Package macOS (.dmg)
+        if: runner.os == 'macOS'
+        run: |
+          hdiutil create -volname quorum-gatherer \
+            -srcfolder "desktop/dist/quorum-gatherer.app" -ov -format UDZO \
+            "quorum-gatherer-${{ steps.ver.outputs.version }}-macos.dmg"
+
+      - name: Package Windows (.zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path desktop/dist/quorum-gatherer/* -DestinationPath "quorum-gatherer-${{ steps.ver.outputs.version }}-windows.zip"
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.dmg
+            *.zip
+
+      - name: Upload bundle for the auto-update job
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.tag }}
+          path: desktop/dist
+          if-no-files-found: error
+
+  # --------------------------------------------------- publish TUF auto-update streams
+  # Inert until the maintainer initializes the TUF repo, commits the per-OS public
+  # root.json into the app, sets the TUF_KEYS secret, and sets ENABLE_AUTOUPDATE=true.
+  autoupdate:
+    needs: build
+    if: ${{ vars.ENABLE_AUTOUPDATE == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-packages
+
+      - name: Version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with: { pattern: bundle-*, path: bundles }
+
+      - name: Restore signing keys (secret)
+        env:
+          TUF_KEYS: ${{ secrets.TUF_KEYS }}
+        run: |
+          mkdir -p tuf
+          echo "$TUF_KEYS" | base64 -d | tar -xz -C tuf   # workdir state incl. keys + prior config
+
+      - name: Add bundles + publish metadata (per platform)
+        run: |
+          set -e
+          VER="${{ steps.ver.outputs.version }}"
+          mkdir -p pages
+          for OS in macos windows; do
+            APP="quorum-gatherer-$OS"
+            WD="tuf/$OS"
+            BUNDLE=$(find "bundles/bundle-$OS" -maxdepth 2 -name "quorum-gatherer*" -type d | head -1)
+            QUORUM_TUF_APP_NAME="$APP" uv run python desktop/release/tuf/repo_tool.py \
+              add --workdir "$WD" --bundle "$BUNDLE" --version "$VER"
+            mkdir -p "pages/metadata/$OS"
+            cp "$WD/repo/metadata/"*.json "pages/metadata/$OS/"
+            gh release upload updates "$WD/repo/targets/"*.tar.gz --clobber
+          done
+          # re-pack workdir state (keys + metadata) and stash it back as a release asset
+          tar -czf tuf-state.tar.gz -C tuf .
+          base64 < tuf-state.tar.gz > tuf-state.b64   # maintainer rotates the secret from this
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: pages }
+      - uses: actions/deploy-pages@v4

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
+from quorum_core.agents.loader import load_agents
 
-from app.agents.loader import load_agents
 from app.schemas.api import AgentInfo
 
 router = APIRouter(prefix="/api", tags=["agents"])

@@ -36,13 +36,37 @@ async def test_full_pipeline_completes_and_persists(client):
 
 
 @pytest.mark.asyncio
+async def test_reconvening_is_idempotent(client):
+    """Re-running the council on a chat that already has a report regenerates cleanly instead
+    of hitting the council_reports UNIQUE constraint or piling up duplicate runs."""
+    from quorum_core.agents.orchestrator import run_council
+    from quorum_core.core.db import SessionLocal
+    from quorum_core.models import AgentRun, CouncilReport
+    from sqlalchemy import select
+
+    cid, _ = await _run_council(client)
+
+    # A direct second run must not raise (previously: IntegrityError on council_reports.chat_id).
+    await run_council(cid)
+
+    async with SessionLocal() as s:
+        reports = list(await s.scalars(select(CouncilReport).where(CouncilReport.chat_id == cid)))
+        runs = list(await s.scalars(select(AgentRun).where(AgentRun.chat_id == cid)))
+    assert len(reports) == 1  # not duplicated
+    assert len(runs) == 9  # prior runs cleared, exactly one fresh set
+
+    detail = (await client.get(f"/api/chats/{cid}")).json()
+    assert detail["status"] == "completed"
+
+
+@pytest.mark.asyncio
 async def test_members_run_in_isolation(client):
     """Every council member receives the identical prompt (only idea + docs) and none
     sees another member's contribution — proving no cross-agent context leak."""
     cid, _ = await _run_council(client)
 
-    from app.core.db import SessionLocal
-    from app.models import AgentRun
+    from quorum_core.core.db import SessionLocal
+    from quorum_core.models import AgentRun
     from sqlalchemy import select
 
     async with SessionLocal() as s:

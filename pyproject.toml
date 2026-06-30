@@ -1,0 +1,37 @@
+# uv workspace root for the quorum-gatherer monorepo.
+# Members share one virtualenv; quorum_core is the shared library both apps depend on.
+[project]
+name = "quorum-gatherer"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = ["quorum_core", "backend", "desktop"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.7",
+    "pyinstaller>=6.10",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["quorum_core/tests", "backend/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W", "C4", "SIM"]
+ignore = ["B008"]  # FastAPI uses function calls (Depends/File) in argument defaults
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

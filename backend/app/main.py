@@ -6,9 +6,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.core.config import get_settings
-from app.core.db import init_db
+from quorum_core.core.config import get_settings
+from quorum_core.core.db import init_db
 
 
 @asynccontextmanager
@@ -16,7 +15,7 @@ async def lifespan(app: FastAPI):
     # Create tables for local/dev runs (Alembic manages real migrations).
     await init_db()
     # Load + validate agent definitions from agent_prompts/ so a bad file fails fast.
-    from app.agents.loader import load_agents
+    from quorum_core.agents.loader import load_agents
 
     app.state.agents = load_agents()
     yield

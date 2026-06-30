@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
-from app.core.events import event_bus
+from quorum_core.core.events import event_bus
 
 router = APIRouter(tags=["ws"])
 

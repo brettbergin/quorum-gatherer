@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, desktop-apps]
+  pull_request:
+
+env:
+  UV_PYTHON: "3.13"
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install workspace
+        run: uv sync --all-packages
+      - name: Lint + format check
+        run: |
+          uv run ruff format --check quorum_core backend desktop
+          uv run ruff check quorum_core backend desktop
+      - name: Tests
+        run: uv run python -m pytest
+      - name: Desktop engine selftest (headless)
+        run: uv run python desktop/run.py --selftest
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
