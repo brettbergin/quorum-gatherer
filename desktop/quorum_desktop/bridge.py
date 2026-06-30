@@ -8,6 +8,7 @@ on Qt's event loop, signal emission happens on the GUI thread — safe for widge
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from PySide6.QtCore import QObject, Signal
 from quorum_core.core.events import event_bus
@@ -28,7 +29,7 @@ class CouncilBridge(QObject):
     def __init__(self, chat_id: str) -> None:
         super().__init__()
         self._chat_id = chat_id
-        self._queue = None
+        self._queue: asyncio.Queue[dict[str, Any]] | None = None
         self._task: asyncio.Task | None = None
 
     def start(self) -> None:

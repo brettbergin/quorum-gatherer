@@ -95,14 +95,14 @@ class _ModelReasoningField(QWidget):
         self._budget_enable.setVisible(is_budget)
         self._budget.setVisible(is_budget)
 
-        if is_effort:
+        if is_effort and spec is not None:
             self._effort.blockSignals(True)
             self._effort.clear()
             self._effort.addItem("Off", "")
             for e in spec["reasoning"]["efforts"]:
                 self._effort.addItem(e, e)
             self._effort.blockSignals(False)
-        elif is_budget:
+        elif is_budget and spec is not None:
             r = spec["reasoning"]
             self._budget.setRange(max(1, r["budget_min"]), r["budget_max"])
             self._budget.setValue(r["budget_default"] or max(1, r["budget_min"]))

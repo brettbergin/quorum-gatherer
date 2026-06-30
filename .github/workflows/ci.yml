@@ -9,7 +9,9 @@ env:
   UV_PYTHON: "3.14"
 
 jobs:
-  python:
+  # ---------------------------------------------------------------- source-code checks
+  # One job per task so each shows up as its own status check and they run in parallel.
+  pytest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,14 +20,59 @@ jobs:
           enable-cache: true
       - name: Install workspace
         run: uv sync --all-packages
-      - name: Lint + format check
-        run: |
-          uv run ruff format --check quorum_core backend desktop
-          uv run ruff check quorum_core backend desktop
       - name: Tests
         run: uv run python -m pytest
       - name: Desktop engine selftest (headless)
         run: uv run python desktop/run.py --selftest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install workspace
+        run: uv sync --all-packages
+      - name: Ruff lint
+        run: uv run ruff check quorum_core backend desktop
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install workspace
+        run: uv sync --all-packages
+      - name: Ruff format check
+        run: uv run ruff format --check quorum_core backend desktop
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install workspace
+        run: uv sync --all-packages
+      - name: mypy
+        run: uv run mypy quorum_core/quorum_core backend/app desktop/quorum_desktop
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install workspace
+        run: uv sync --all-packages
+      - name: Bandit
+        # Gate on medium+ severity; low-severity findings (e.g. assert usage) don't fail CI.
+        run: uv run bandit -c pyproject.toml -r quorum_core/quorum_core backend/app desktop/quorum_desktop --severity-level medium
 
   frontend:
     runs-on: ubuntu-latest

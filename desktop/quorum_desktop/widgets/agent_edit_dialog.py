@@ -159,7 +159,7 @@ class AgentEditDialog(QDialog):
                 await engine.create_agent(
                     self._key_edit.text(), self._name.text(), prompt, **self._fields()
                 )
-            else:
+            elif self._key is not None:
                 await engine.update_agent(self._key, system_prompt=prompt, **self._fields())
         except Exception as exc:  # noqa: BLE001 - surface validation errors to the user
             self._set_status(f"⚠ {exc}", "error")
@@ -172,6 +172,8 @@ class AgentEditDialog(QDialog):
         _spawn(self._do_reset())
 
     async def _do_reset(self) -> None:
+        if self._key is None:
+            return
         try:
             row = await engine.reset_agent(self._key)
         except Exception as exc:  # noqa: BLE001

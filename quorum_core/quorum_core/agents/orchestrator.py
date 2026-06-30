@@ -122,6 +122,8 @@ async def run_deliberation(chat_id: str, registry: AgentRegistry | None = None) 
 
         async with SessionLocal() as session:
             chat = await session.get(Chat, chat_id)
+            if chat is None:
+                raise ValueError(f"chat {chat_id} not found")
             chat.status = ChatStatus.deliberated
             await session.commit()
         await _emit(chat_id, {"type": "deliberation_complete"})
@@ -156,6 +158,8 @@ async def run_synthesis(chat_id: str, registry: AgentRegistry | None = None) -> 
 
         async with SessionLocal() as session:
             chat = await session.get(Chat, chat_id)
+            if chat is None:
+                raise ValueError(f"chat {chat_id} not found")
             chat.status = ChatStatus.completed
             await session.commit()
     except Exception as exc:  # pragma: no cover - top-level safety net
@@ -311,6 +315,8 @@ async def chat_with_agent(
         )
         if run_id is not None and result.messages is not None:
             run = await session.get(AgentRun, run_id)
+            if run is None:
+                raise ValueError(f"agent run {run_id} not found")
             run.message_history = runner.serialize_messages(result.messages)
         await session.commit()
     return result.text
@@ -369,9 +375,11 @@ async def _run_member(
         )
     except Exception as exc:
         async with SessionLocal() as session:
-            run = await session.get(AgentRun, run_id)
-            run.status = AgentRunStatus.failed
-            run.error = str(exc)
+            run_row = await session.get(AgentRun, run_id)
+            if run_row is None:
+                raise ValueError(f"agent run {run_id} not found") from exc
+            run_row.status = AgentRunStatus.failed
+            run_row.error = str(exc)
             await session.commit()
         await _emit(
             chat_id,
@@ -385,14 +393,16 @@ async def _run_member(
         return defn.name, None
 
     async with SessionLocal() as session:
-        run = await session.get(AgentRun, run_id)
-        run.status = AgentRunStatus.completed
-        run.output_text = result.text
-        run.prompt_tokens = result.prompt_tokens
-        run.completion_tokens = result.completion_tokens
-        run.latency_ms = result.latency_ms
+        run_row = await session.get(AgentRun, run_id)
+        if run_row is None:
+            raise ValueError(f"agent run {run_id} not found")
+        run_row.status = AgentRunStatus.completed
+        run_row.output_text = result.text
+        run_row.prompt_tokens = result.prompt_tokens
+        run_row.completion_tokens = result.completion_tokens
+        run_row.latency_ms = result.latency_ms
         if result.messages is not None:
-            run.message_history = runner.serialize_messages(result.messages)
+            run_row.message_history = runner.serialize_messages(result.messages)
         session.add(
             Message(
                 chat_id=chat_id,
@@ -465,9 +475,11 @@ async def _run_chairman(
         content: CouncilReportContent = result.output
     except Exception as exc:
         async with SessionLocal() as session:
-            run = await session.get(AgentRun, run_id)
-            run.status = AgentRunStatus.failed
-            run.error = str(exc)
+            run_row = await session.get(AgentRun, run_id)
+            if run_row is None:
+                raise ValueError(f"agent run {run_id} not found") from exc
+            run_row.status = AgentRunStatus.failed
+            run_row.error = str(exc)
             await session.commit()
         await _emit(
             chat_id,
@@ -484,13 +496,15 @@ async def _run_chairman(
     payload = content.model_dump(mode="json")
 
     async with SessionLocal() as session:
-        run = await session.get(AgentRun, run_id)
-        run.status = AgentRunStatus.completed
-        run.output = payload
-        run.output_text = markdown
-        run.prompt_tokens = result.prompt_tokens
-        run.completion_tokens = result.completion_tokens
-        run.latency_ms = result.latency_ms
+        run_row = await session.get(AgentRun, run_id)
+        if run_row is None:
+            raise ValueError(f"agent run {run_id} not found")
+        run_row.status = AgentRunStatus.completed
+        run_row.output = payload
+        run_row.output_text = markdown
+        run_row.prompt_tokens = result.prompt_tokens
+        run_row.completion_tokens = result.completion_tokens
+        run_row.latency_ms = result.latency_ms
         # Idempotent write: replace any existing report (defends against a re-run/race that
         # slipped past the start-of-run reset) rather than violating the chat_id UNIQUE.
         existing = await session.scalar(

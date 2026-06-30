@@ -9,7 +9,7 @@ fails when actually selected.
 from __future__ import annotations
 
 import asyncio
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from quorum_core.agents.provider import PROVIDERS, ProviderError
 from quorum_core.core.config import get_settings
@@ -80,7 +80,7 @@ async def _fetch(p: str, api_key: str) -> list[ModelInfo]:
         if p == "anthropic":
             from anthropic import AsyncAnthropic
 
-            client = AsyncAnthropic(api_key=api_key)
+            client: Any = AsyncAnthropic(api_key=api_key)
             pairs: list[tuple[str, str]] = []
             async for m in client.models.list():
                 pairs.append((m.id, getattr(m, "display_name", "") or m.id))
