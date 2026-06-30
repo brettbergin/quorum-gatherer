@@ -1,0 +1,61 @@
+name: Version bump
+
+# Bump the patch version automatically whenever a PR is merged into main, then
+# push a matching v<version> tag to trigger release.yml (build + publish).
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+# Serialize bumps so two PRs merged close together can't race on the push to main.
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # A PAT is required for the pushed tag to trigger release.yml — tags
+          # pushed with the default GITHUB_TOKEN do NOT start other workflows.
+          # Falls back to GITHUB_TOKEN (version still bumps, but release.yml will
+          # NOT auto-fire) so the bump keeps working before RELEASE_PAT is set.
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Bump patch version
+        id: bump
+        run: echo "version=$(python3 scripts/bump_version.py patch)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag, and push
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump version to v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin main
+          git push origin "v${VERSION}"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          {
+            echo "### Bumped to v${VERSION}"
+            echo ""
+            if [ -n "${{ secrets.RELEASE_PAT }}" ]; then
+              echo "Tagged \`v${VERSION}\` — release.yml will build and publish."
+            else
+              echo "⚠️ RELEASE_PAT not set: tag \`v${VERSION}\` was pushed with GITHUB_TOKEN, so release.yml will **not** auto-fire. Add the RELEASE_PAT secret to enable auto-release."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
