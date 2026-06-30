@@ -27,9 +27,7 @@ def test_openai_invalid_effort_dropped():
 def test_anthropic_thinking_budget_shape_and_clamp():
     spec = PROVIDERS["anthropic"].reasoning
     out = build_reasoning_settings("anthropic", "claude-opus-4-8", str(spec.budget_max + 999))
-    assert out == {
-        "anthropic_thinking": {"type": "enabled", "budget_tokens": spec.budget_max}
-    }
+    assert out == {"anthropic_thinking": {"type": "enabled", "budget_tokens": spec.budget_max}}
 
 
 def test_google_thinking_config_shape():
@@ -63,9 +61,7 @@ def test_resolver_threads_reasoning_into_model_settings():
     )
     assert rt.provider == "anthropic"
     assert rt.model == "claude-opus-4-8"
-    assert rt.model_settings == {
-        "anthropic_thinking": {"type": "enabled", "budget_tokens": 8000}
-    }
+    assert rt.model_settings == {"anthropic_thinking": {"type": "enabled", "budget_tokens": 8000}}
 
 
 def test_chairman_not_downgraded_to_member_model():
@@ -105,9 +101,7 @@ def test_chairman_uses_its_own_configured_model_and_reasoning():
         is_chairman=True,
     )
     assert rt.model == "claude-opus-4-8"
-    assert rt.model_settings == {
-        "anthropic_thinking": {"type": "enabled", "budget_tokens": 12000}
-    }
+    assert rt.model_settings == {"anthropic_thinking": {"type": "enabled", "budget_tokens": 12000}}
 
 
 def test_member_uses_configured_member_model():
@@ -135,9 +129,7 @@ async def test_catalog_stub_in_test_model_mode(monkeypatch):
 
     import quorum_core.agents.catalog as catalog_mod
 
-    monkeypatch.setattr(
-        catalog_mod, "get_settings", lambda: SimpleNamespace(use_test_model=True)
-    )
+    monkeypatch.setattr(catalog_mod, "get_settings", lambda: SimpleNamespace(use_test_model=True))
     models = await fetch_models("openai", "sk-anything")
     ids = {m["id"] for m in models}
     assert "gpt-4o" in ids

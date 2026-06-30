@@ -45,9 +45,7 @@ class AgentPanel(QFrame):
         self._active = QCheckBox()
         self._active.setChecked(True)
         self._active.setToolTip("Include this agent in the next deliberation")
-        self._active.toggled.connect(
-            lambda on: self.active_toggled.emit(self._key, on)
-        )
+        self._active.toggled.connect(lambda on: self.active_toggled.emit(self._key, on))
         name_lbl = QLabel(name)
         name_lbl.setObjectName("agentName")
         self._engaged = QLabel("💬")

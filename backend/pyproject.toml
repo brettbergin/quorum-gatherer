@@ -3,7 +3,7 @@ name = "quorum-gatherer-backend"
 version = "0.1.2"
 description = "Product Strategy Council — FastAPI web shell over quorum_core."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "quorum-core",
     "fastapi>=0.115",

@@ -2,7 +2,7 @@
 name = "quorum-core"
 description = "Shared data model + council engine for quorum-gatherer (web + desktop)."
 dynamic = ["version"]
-requires-python = ">=3.11"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "pydantic>=2.9",
     "pydantic-settings>=2.5",
@@ -12,6 +12,9 @@ dependencies = [
     "mistralai>=1.2",
     "cohere>=5.13",
     "sqlalchemy>=2.0",
+    # SQLAlchemy's async engine requires greenlet, but it only declares it conditionally
+    # (its marker omits macOS arm64), so depend on it explicitly to install everywhere.
+    "greenlet>=3.2",
     "aiosqlite>=0.20",
     "alembic>=1.13",
     "cryptography>=43",
