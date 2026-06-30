@@ -324,9 +324,7 @@ class ProvidersPage(QWidget):
         self._models = []
         self._key.clear()
         self._key.setPlaceholderText(
-            "•••••••• stored — leave blank to reuse"
-            if setting.get("has_key")
-            else "Paste API key"
+            "•••••••• stored — leave blank to reuse" if setting.get("has_key") else "Paste API key"
         )
         # Models + reasoning stay locked until the key is tested; show the configured models.
         self._members.configure(spec)

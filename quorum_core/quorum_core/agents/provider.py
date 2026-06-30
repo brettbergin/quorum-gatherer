@@ -166,7 +166,7 @@ def build_reasoning_settings(provider: str, model: str, raw: str | None) -> dict
     if rs.kind == "thinking_budget":
         try:
             budget = int(raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return {}
         if budget <= 0:
             return {}

@@ -67,7 +67,7 @@ async def fetch_models(provider: str, api_key: str) -> list[ModelInfo]:
 
     try:
         return await asyncio.wait_for(_fetch(p, api_key), timeout=30)
-    except (ProviderError, CatalogError):
+    except ProviderError, CatalogError:
         raise
     except TimeoutError as exc:
         raise CatalogError("model listing timed out") from exc

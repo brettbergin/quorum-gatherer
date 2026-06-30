@@ -67,9 +67,7 @@ async def _reset_synthesis_artifacts(session, chat_id: str, chairman_key: str) -
         )
     )
     await session.execute(
-        delete(Message).where(
-            Message.chat_id == chat_id, Message.author_key == chairman_key
-        )
+        delete(Message).where(Message.chat_id == chat_id, Message.author_key == chairman_key)
     )
 
 

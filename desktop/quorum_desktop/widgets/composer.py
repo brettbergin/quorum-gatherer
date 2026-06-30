@@ -60,9 +60,7 @@ class Composer(QFrame):
 
     def _update_enabled(self) -> None:
         # Enabled only when there's something to deliberate on (and no run in flight).
-        self._convene.setEnabled(
-            not self._running and bool(self._idea.toPlainText().strip())
-        )
+        self._convene.setEnabled(not self._running and bool(self._idea.toPlainText().strip()))
 
     def set_idea(self, text: str) -> None:
         self._idea.setPlainText(text or "")
