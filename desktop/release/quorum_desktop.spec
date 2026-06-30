@@ -46,9 +46,14 @@ for pkg in ("google.genai", "google.generativeai"):
     except Exception:
         pass
 
-# SQLAlchemy loads its DBAPI driver dynamically by name (sqlite+aiosqlite), so the
-# aiosqlite package isn't discovered by static analysis — pull it in explicitly.
+# SQLAlchemy reaches for these dynamically (the aiosqlite DBAPI driver by name, and
+# the greenlet C-extension for its async engine), so static analysis misses them.
 hiddenimports += collect_submodules("aiosqlite")
+for pkg in ("greenlet", "sqlalchemy"):
+    pkg_datas, pkg_binaries, pkg_hidden = collect_all(pkg)
+    datas += pkg_datas
+    binaries += pkg_binaries
+    hiddenimports += pkg_hidden
 
 a = Analysis(
     [os.path.join(DESKTOP, "run.py")],

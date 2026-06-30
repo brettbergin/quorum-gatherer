@@ -12,6 +12,9 @@ dependencies = [
     "mistralai>=1.2",
     "cohere>=5.13",
     "sqlalchemy>=2.0",
+    # SQLAlchemy's async engine requires greenlet, but it only declares it conditionally
+    # (its marker omits macOS arm64), so depend on it explicitly to install everywhere.
+    "greenlet>=3.2",
     "aiosqlite>=0.20",
     "alembic>=1.13",
     "cryptography>=43",
