@@ -39,3 +39,29 @@ jobs:
         run: |
           npm ci
           npm run build
+
+  # Build the desktop bundle on both target OSes and smoke-test the FROZEN app, so the
+  # PyInstaller spec (datas/hidden imports) is verified on PRs — release.yml only runs on
+  # tags, so without this a packaging break wouldn't surface until a release.
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            selftest: ./desktop/dist/quorum-gatherer.app/Contents/MacOS/quorum-gatherer --selftest
+          - os: windows-latest
+            selftest: ./desktop/dist/quorum-gatherer/quorum-gatherer.exe --selftest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install workspace
+        run: uv sync --all-packages
+      - name: Build desktop bundle (PyInstaller)
+        working-directory: desktop
+        run: uv run pyinstaller release/quorum_desktop.spec --noconfirm
+      - name: Frozen bundle selftest
+        run: ${{ matrix.selftest }}
