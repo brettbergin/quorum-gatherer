@@ -35,6 +35,14 @@ jobs:
         id: bump
         run: echo "version=$(python3 scripts/bump_version.py patch)" >> "$GITHUB_OUTPUT"
 
+      # Keep uv.lock's workspace-package versions in sync with the bump. Without this the
+      # lock drifts (lock < pyproject), and every later `uv run` tries to rewrite uv.lock —
+      # which fails ("permission denied") in jobs that run a root Docker action first.
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+      - name: Re-lock uv.lock to the bumped version
+        run: uv lock
+
       - name: Commit, tag, and push
         env:
           VERSION: ${{ steps.bump.outputs.version }}
