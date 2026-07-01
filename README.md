@@ -35,7 +35,7 @@
 | desktop/quorum\_desktop/widgets/transaction\_dialog.py  |       59 |        0 |    100% |           |
 | desktop/quorum\_desktop/widgets/updates\_page.py        |       63 |        0 |    100% |           |
 | desktop/quorum\_desktop/windows/\_\_init\_\_.py         |        0 |        0 |    100% |           |
-| desktop/quorum\_desktop/windows/main\_window.py         |      335 |       14 |     96% |141, 159-160, 251-252, 268-269, 273, 286, 415-418, 439 |
+| desktop/quorum\_desktop/windows/main\_window.py         |      335 |       11 |     97% |141, 159-160, 251-252, 286, 415-418, 439 |
 | quorum\_core/quorum\_core/\_\_init\_\_.py               |        1 |        0 |    100% |           |
 | quorum\_core/quorum\_core/agents/\_\_init\_\_.py        |        0 |        0 |    100% |           |
 | quorum\_core/quorum\_core/agents/catalog.py             |       83 |        1 |     99% |        71 |
@@ -67,7 +67,7 @@
 | quorum\_core/quorum\_core/services/agents\_service.py   |       80 |        0 |    100% |           |
 | quorum\_core/quorum\_core/services/settings\_service.py |       64 |        2 |     97% |   42, 130 |
 | quorum\_core/quorum\_core/services/users.py             |       12 |        0 |    100% |           |
-| **TOTAL**                                               | **3358** |  **158** | **95%** |           |
+| **TOTAL**                                               | **3358** |  **155** | **95%** |           |
 
 
 ## Setup coverage badge
