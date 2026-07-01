@@ -2022,7 +2022,7 @@ requires-dist = [
 
 [[package]]
 name = "quorum-desktop"
-version = "0.1.5"
+version = "0.1.6"
 source = { editable = "desktop" }
 dependencies = [
     { name = "platformdirs" },
@@ -2043,7 +2043,7 @@ requires-dist = [
 
 [[package]]
 name = "quorum-gatherer"
-version = "0.1.5"
+version = "0.1.6"
 source = { virtual = "." }
 
 [package.dev-dependencies]
@@ -2076,7 +2076,7 @@ dev = [
 
 [[package]]
 name = "quorum-gatherer-backend"
-version = "0.1.5"
+version = "0.1.6"
 source = { editable = "backend" }
 dependencies = [
     { name = "fastapi" },

@@ -79,6 +79,30 @@ Actions on a `v*` tag (`.github/workflows/release.yml`); auto-update is activate
 initializing the TUF repo (`desktop/release/tuf/repo_tool.py init`), committing the public
 root, setting the `TUF_KEYS` secret, and the `ENABLE_AUTOUPDATE` repo variable.
 
+## Download & run
+
+Grab the latest build from the [Releases](https://github.com/brettbergin/quorum-gatherer/releases) page.
+
+**macOS** (`quorum-gatherer-<ver>-macos.dmg`) — open the `.dmg` and drag the app to Applications.
+The release build is signed with a Developer ID and notarized by Apple, so it launches with no
+Gatekeeper warning. *(If a build is unsigned — before the signing secrets are configured — macOS
+says "unidentified developer"; right-click the app → **Open** → **Open** the first time.)*
+
+**Windows** (`quorum-gatherer-<ver>-windows-setup.exe`) — run the installer (per-user, no admin
+needed). The installer is currently **unsigned**, so SmartScreen shows "Windows protected your PC"
+on first run → click **More info → Run anyway**. A portable `.zip` is also attached.
+
+**Verify your download** against the published `SHA256SUMS.txt` on the release:
+
+```bash
+# macOS / Linux
+shasum -a 256 quorum-gatherer-*-macos.dmg      # compare to SHA256SUMS.txt
+```
+```powershell
+# Windows (PowerShell)
+Get-FileHash .\quorum-gatherer-*-windows-setup.exe -Algorithm SHA256   # compare to SHA256SUMS.txt
+```
+
 ## Development
 
 - `make lint` / `make format` — Ruff lint & format (all Python packages)
