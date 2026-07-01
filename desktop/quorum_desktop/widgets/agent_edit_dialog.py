@@ -156,9 +156,11 @@ class AgentEditDialog(QDialog):
         prompt = self._prompt.toPlainText()
         try:
             if self._creating:
-                await engine.create_agent(
-                    self._key_edit.text(), self._name.text(), prompt, **self._fields()
-                )
+                # name is a positional arg of create_agent; pop it from the field kwargs so it
+                # isn't also passed as a keyword (which raises "multiple values for 'name'").
+                fields = self._fields()
+                name = fields.pop("name")
+                await engine.create_agent(self._key_edit.text(), name, prompt, **fields)
             elif self._key is not None:
                 await engine.update_agent(self._key, system_prompt=prompt, **self._fields())
         except Exception as exc:  # noqa: BLE001 - surface validation errors to the user
