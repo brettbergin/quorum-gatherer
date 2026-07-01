@@ -53,7 +53,44 @@ jobs:
 
       - name: Build desktop bundle (PyInstaller)
         working-directory: desktop
+        env:
+          QUORUM_BUILD_NUMBER: ${{ github.run_number }}  # -> CFBundleVersion (macOS build no.)
         run: uv run pyinstaller release/quorum_desktop.spec --noconfirm
+
+      # ---- macOS: Developer ID signing (self-skips to UNSIGNED if the secret is absent) ----
+      - name: Sign macOS app (Developer ID)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APP="desktop/dist/quorum-gatherer.app"
+          if [ -z "${MACOS_CERT_P12:-}" ]; then
+            echo "::warning::MACOS_CERT_P12 not set — shipping an UNSIGNED .app (Gatekeeper will warn)."
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/app-signing.keychain-db"
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk '/Developer ID Application/{print $2; exit}')
+          echo "Signing with identity $IDENTITY"
+          ENT="desktop/release/entitlements.plist"
+          # Hardened-runtime deep sign: inner Mach-O first, then frameworks, then the app.
+          find "$APP/Contents" -type f \( -name '*.dylib' -o -name '*.so' \) -print0 \
+            | xargs -0 -n1 codesign --force --timestamp --options runtime -s "$IDENTITY"
+          find "$APP/Contents" -type d -name '*.framework' -print0 \
+            | xargs -0 -n1 codesign --force --timestamp --options runtime -s "$IDENTITY"
+          codesign --force --timestamp --options runtime --entitlements "$ENT" -s "$IDENTITY" \
+            "$APP/Contents/MacOS/quorum-gatherer"
+          codesign --force --timestamp --options runtime --entitlements "$ENT" -s "$IDENTITY" "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
 
       - name: Package macOS (.dmg)
         if: runner.os == 'macOS'
@@ -62,7 +99,36 @@ jobs:
             -srcfolder "desktop/dist/quorum-gatherer.app" -ov -format UDZO \
             "quorum-gatherer-${{ steps.ver.outputs.version }}-macos.dmg"
 
-      - name: Package Windows (.zip)
+      # ---- macOS: notarize + staple the .dmg (self-skips if the notarization key is absent) ----
+      - name: Notarize + staple macOS (.dmg)
+        if: runner.os == 'macOS'
+        env:
+          AC_API_KEY_P8: ${{ secrets.AC_API_KEY_P8 }}
+          AC_API_KEY_ID: ${{ secrets.AC_API_KEY_ID }}
+          AC_API_ISSUER_ID: ${{ secrets.AC_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          DMG="quorum-gatherer-${{ steps.ver.outputs.version }}-macos.dmg"
+          if [ -z "${AC_API_KEY_P8:-}" ]; then
+            echo "::warning::AC_API_KEY_P8 not set — skipping notarization (.dmg not notarized)."
+            exit 0
+          fi
+          echo "$AC_API_KEY_P8" | base64 --decode > "$RUNNER_TEMP/ac_api.p8"
+          xcrun notarytool submit "$DMG" --key "$RUNNER_TEMP/ac_api.p8" \
+            --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+
+      # ---- Windows: build a per-user Inno Setup installer (UNSIGNED for now) ----
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: desktop
+        run: |
+          choco install innosetup --no-progress -y
+          & "${Env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=${{ steps.ver.outputs.version }} release\installer.iss
+
+      - name: Package Windows (.zip, portable)
         if: runner.os == 'Windows'
         shell: pwsh
         run: Compress-Archive -Path desktop/dist/quorum-gatherer/* -DestinationPath "quorum-gatherer-${{ steps.ver.outputs.version }}-windows.zip"
@@ -73,6 +139,7 @@ jobs:
           files: |
             *.dmg
             *.zip
+            *setup.exe
 
       - name: Upload bundle for the auto-update job
         uses: actions/upload-artifact@v4
@@ -80,6 +147,22 @@ jobs:
           name: bundle-${{ matrix.tag }}
           path: desktop/dist
           if-no-files-found: error
+
+  # ------------------------------------------------------ integrity: combined checksums
+  checksums:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute + publish SHA256SUMS.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir dl \
+            --pattern '*.dmg' --pattern '*.zip' --pattern '*setup.exe'
+          (cd dl && sha256sum -- * > ../SHA256SUMS.txt)
+          cat SHA256SUMS.txt
+          gh release upload "$GITHUB_REF_NAME" SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
 
   # --------------------------------------------------- publish TUF auto-update streams
   # Inert until the maintainer initializes the TUF repo, commits the per-OS public

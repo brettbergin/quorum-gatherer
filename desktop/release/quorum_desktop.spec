@@ -7,6 +7,9 @@
 # plus a quorum-gatherer.app on macOS — matching the paths release.yml packages.
 
 import os
+import re
+import sys
+import tempfile
 
 from PyInstaller.utils.hooks import (
     collect_all,
@@ -18,6 +21,30 @@ from PyInstaller.utils.hooks import (
 # SPECPATH is injected by PyInstaller and points at this file's directory
 # (.../desktop/release), so paths resolve no matter the current working directory.
 DESKTOP = os.path.dirname(SPECPATH)  # noqa: F821 -- SPECPATH is a PyInstaller global
+ASSETS = os.path.join(SPECPATH, "assets")  # noqa: F821
+IS_WINDOWS = sys.platform.startswith("win")
+
+# App version — parsed from quorum_core/__init__.py (release.yml stamps it before building).
+_init = os.path.join(DESKTOP, "..", "quorum_core", "quorum_core", "__init__.py")
+VERSION = re.search(r'__version__ = "([^"]+)"', open(_init).read()).group(1)
+# CFBundleVersion / build number: CI sets QUORUM_BUILD_NUMBER; fall back to the version.
+BUILD = os.environ.get("QUORUM_BUILD_NUMBER", VERSION)
+
+
+def _windows_version_file():
+    """Render the committed VSVersionInfo template with the current version, to a temp file
+    passed to EXE(version=...) so quorum-gatherer.exe carries File/Product version metadata."""
+    tmpl = open(os.path.join(SPECPATH, "windows_version_info.txt")).read()  # noqa: F821
+    parts = (VERSION.split(".") + ["0", "0", "0"])[:4]
+    vtuple = ", ".join(str(int(p) if p.isdigit() else 0) for p in parts)
+    text = tmpl.replace("@VERSION_TUPLE@", vtuple).replace("@VERSION@", VERSION)
+    f = tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False)
+    f.write(text)
+    f.close()
+    return f.name
+
+
+VERSION_FILE = _windows_version_file() if IS_WINDOWS else None
 
 datas = []
 binaries = []
@@ -100,6 +127,8 @@ exe = EXE(  # noqa: F821 -- EXE is a PyInstaller global
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
+    icon=os.path.join(ASSETS, "icon.ico") if IS_WINDOWS else None,
+    version=VERSION_FILE,
 )
 
 coll = COLLECT(  # noqa: F821 -- COLLECT is a PyInstaller global
@@ -115,6 +144,17 @@ coll = COLLECT(  # noqa: F821 -- COLLECT is a PyInstaller global
 app = BUNDLE(  # noqa: F821 -- BUNDLE is a PyInstaller global
     coll,
     name="quorum-gatherer.app",
-    icon=None,
+    icon=os.path.join(ASSETS, "icon.icns"),
     bundle_identifier="com.brettbergin.quorum-gatherer",
+    version=VERSION,
+    info_plist={
+        "CFBundleName": "quorum-gatherer",
+        "CFBundleDisplayName": "quorum-gatherer",
+        "CFBundleShortVersionString": VERSION,
+        "CFBundleVersion": BUILD,
+        "LSMinimumSystemVersion": "11.0",
+        "NSHighResolutionCapable": True,
+        "LSApplicationCategoryType": "public.app-category.productivity",
+        "NSHumanReadableCopyright": "© Brett Bergin",
+    },
 )
