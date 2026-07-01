@@ -1,5 +1,7 @@
 # quorum-gatherer
 
+![Coverage](https://raw.githubusercontent.com/brettbergin/quorum-gatherer/python-coverage-comment-action-data/badge.svg)
+
 A **Product Strategy Council** as an application. Instead of pasting one giant prompt
 into ChatGPT, you start a chat where a panel of expert agents "joins," each works your
 idea independently **in its own isolated context window**, and a **Chairman** synthesizes

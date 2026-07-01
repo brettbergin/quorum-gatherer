@@ -41,8 +41,12 @@ format-check: ## Verify formatting without writing (CI)
 
 # ----------------------------------------------------------------- test --------
 .PHONY: test
-test: ## Run the test suite (quorum_core + backend)
+test: ## Run the test suite (quorum_core + backend + desktop)
 	$(UV) run python -m pytest
+
+.PHONY: test-cov
+test-cov: ## Run tests with coverage (term + htmlcov/, enforces the 70% gate)
+	$(UV) run python -m pytest --cov --cov-report=term-missing --cov-report=html
 
 # ------------------------------------------------------------------ run ---------
 .PHONY: dev-backend
