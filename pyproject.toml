@@ -1,5 +1,5 @@
-# uv workspace root for the quorum-gatherer monorepo.
-# Members share one virtualenv; quorum_core is the shared library both apps depend on.
+# uv workspace root for quorum-gatherer.
+# quorum_core is the shared library; desktop is the PySide6 app built on it.
 [project]
 name = "quorum-gatherer"
 version = "0.1.8"
@@ -10,13 +10,12 @@ package = false
 default-groups = ["dev"]
 
 [tool.uv.workspace]
-members = ["quorum_core", "backend", "desktop"]
+members = ["quorum_core", "desktop"]
 
 [dependency-groups]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
-    "httpx>=0.27",
     "ruff>=0.7",
     "mypy>=1.13",
     "bandit>=1.8",
@@ -27,10 +26,10 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["quorum_core/tests", "backend/tests", "desktop/tests"]
+testpaths = ["quorum_core/tests", "desktop/tests"]
 
 [tool.coverage.run]
-source = ["quorum_core/quorum_core", "backend/app", "desktop/quorum_desktop"]
+source = ["quorum_core/quorum_core", "desktop/quorum_desktop"]
 relative_files = true  # so the coverage-comment action maps paths correctly
 omit = [
     "*/tests/*",
