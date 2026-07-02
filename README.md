@@ -4,16 +4,6 @@
 
 | Name                                                    |    Stmts |     Miss |   Cover |   Missing |
 |-------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| backend/app/\_\_init\_\_.py                             |        0 |        0 |    100% |           |
-| backend/app/api/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
-| backend/app/api/agents.py                               |        9 |        0 |    100% |           |
-| backend/app/api/chats.py                                |       65 |        5 |     92% |35, 57-60, 80, 118 |
-| backend/app/api/deps.py                                 |       10 |        0 |    100% |           |
-| backend/app/api/settings.py                             |       52 |        7 |     87% |106-109, 134, 145, 149 |
-| backend/app/api/ws.py                                   |       17 |       11 |     35% |     13-25 |
-| backend/app/main.py                                     |       27 |        5 |     81% | 16-21, 38 |
-| backend/app/schemas/\_\_init\_\_.py                     |        0 |        0 |    100% |           |
-| backend/app/schemas/api.py                              |      112 |        0 |    100% |           |
 | desktop/quorum\_desktop/\_\_init\_\_.py                 |        2 |        0 |    100% |           |
 | desktop/quorum\_desktop/app.py                          |       51 |       24 |     53% | 49-84, 88 |
 | desktop/quorum\_desktop/bridge.py                       |       62 |        0 |    100% |           |
@@ -41,7 +31,7 @@
 | quorum\_core/quorum\_core/agents/catalog.py             |       83 |        1 |     99% |        71 |
 | quorum\_core/quorum\_core/agents/definition.py          |       25 |        0 |    100% |           |
 | quorum\_core/quorum\_core/agents/loader.py              |       79 |       10 |     87% |33, 39, 68, 80-81, 84, 117, 138-139, 143 |
-| quorum\_core/quorum\_core/agents/orchestrator.py        |      229 |       40 |     83% |80, 98, 126, 145, 162, 176, 181-186, 221, 265, 270, 319, 376-393, 398, 476-493, 501, 514-515 |
+| quorum\_core/quorum\_core/agents/orchestrator.py        |      229 |       46 |     80% |80, 98, 126, 145, 162, 176, 181-186, 221, 223, 235-250, 265, 270, 319, 376-393, 398, 476-493, 501, 514-515 |
 | quorum\_core/quorum\_core/agents/provider.py            |      124 |        3 |     98% |179-181, 272 |
 | quorum\_core/quorum\_core/agents/runner.py              |       58 |        8 |     86% | 46, 74-80 |
 | quorum\_core/quorum\_core/agents/seed.py                |       25 |        1 |     96% |        54 |
@@ -49,9 +39,9 @@
 | quorum\_core/quorum\_core/agents/validation.py          |       20 |        0 |    100% |           |
 | quorum\_core/quorum\_core/core/\_\_init\_\_.py          |        0 |        0 |    100% |           |
 | quorum\_core/quorum\_core/core/config.py                |       21 |        0 |    100% |           |
-| quorum\_core/quorum\_core/core/db.py                    |       16 |        0 |    100% |           |
+| quorum\_core/quorum\_core/core/db.py                    |       16 |        2 |     88% |     30-31 |
 | quorum\_core/quorum\_core/core/events.py                |       28 |        0 |    100% |           |
-| quorum\_core/quorum\_core/core/security.py              |       22 |        3 |     86% | 25, 40-41 |
+| quorum\_core/quorum\_core/core/security.py              |       22 |        5 |     77% | 25, 38-41 |
 | quorum\_core/quorum\_core/migrate.py                    |       13 |        0 |    100% |           |
 | quorum\_core/quorum\_core/models/\_\_init\_\_.py        |        7 |        0 |    100% |           |
 | quorum\_core/quorum\_core/models/agent\_config.py       |       23 |        0 |    100% |           |
@@ -65,9 +55,9 @@
 | quorum\_core/quorum\_core/schemas/agent\_outputs.py     |       69 |        4 |     94% |   115-118 |
 | quorum\_core/quorum\_core/services/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | quorum\_core/quorum\_core/services/agents\_service.py   |       80 |        0 |    100% |           |
-| quorum\_core/quorum\_core/services/settings\_service.py |       64 |        2 |     97% |   42, 130 |
+| quorum\_core/quorum\_core/services/settings\_service.py |       64 |        7 |     89% |42, 60, 64, 89, 95, 130, 153 |
 | quorum\_core/quorum\_core/services/users.py             |       12 |        0 |    100% |           |
-| **TOTAL**                                               | **3358** |  **155** | **95%** |           |
+| **TOTAL**                                               | **3066** |  **142** | **95%** |           |
 
 
 ## Setup coverage badge
