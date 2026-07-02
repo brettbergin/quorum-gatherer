@@ -39,7 +39,7 @@ jobs:
       - name: Install workspace
         run: uv sync --all-packages
       - name: Ruff lint
-        run: uv run ruff check quorum_core backend desktop
+        run: uv run ruff check quorum_core desktop
 
   format:
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
       - name: Install workspace
         run: uv sync --all-packages
       - name: Ruff format check
-        run: uv run ruff format --check quorum_core backend desktop
+        run: uv run ruff format --check quorum_core desktop
 
   typecheck:
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
       - name: Install workspace
         run: uv sync --all-packages
       - name: mypy
-        run: uv run mypy quorum_core/quorum_core backend/app desktop/quorum_desktop
+        run: uv run mypy quorum_core/quorum_core desktop/quorum_desktop
 
   security:
     runs-on: ubuntu-latest
@@ -76,20 +76,7 @@ jobs:
         run: uv sync --all-packages
       - name: Bandit
         # Gate on medium+ severity; low-severity findings (e.g. assert usage) don't fail CI.
-        run: uv run bandit -c pyproject.toml -r quorum_core/quorum_core backend/app desktop/quorum_desktop --severity-level medium
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Build frontend
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
+        run: uv run bandit -c pyproject.toml -r quorum_core/quorum_core desktop/quorum_desktop --severity-level medium
 
   # Build the desktop bundle on both target OSes and smoke-test the FROZEN app, so the
   # PyInstaller spec (datas/hidden imports) is verified on PRs — release.yml only runs on

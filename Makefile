@@ -1,10 +1,8 @@
 # quorum-gatherer — developer task runner
-# uv workspace (quorum_core + backend + desktop) at the repo root; frontend uses npm + vite.
+# uv workspace (quorum_core + desktop) at the repo root.
 
-BACKEND  := backend
-FRONTEND := frontend
 DESKTOP  := desktop
-PYDIRS   := quorum_core backend desktop
+PYDIRS   := quorum_core desktop
 UV       := uv
 
 .DEFAULT_GOAL := help
@@ -16,15 +14,8 @@ help: ## Show this help
 
 # ---------------------------------------------------------------- setup --------
 .PHONY: install
-install: install-py install-frontend ## Install all dependencies
-
-.PHONY: install-py
-install-py: ## Create the workspace venv + install all members (uv)
+install: ## Create the workspace venv + install all members (uv)
 	$(UV) sync --all-packages
-
-.PHONY: install-frontend
-install-frontend: ## Install frontend deps (npm)
-	cd $(FRONTEND) && npm install
 
 # ----------------------------------------------------------------- lint --------
 .PHONY: lint
@@ -41,7 +32,7 @@ format-check: ## Verify formatting without writing (CI)
 
 # ----------------------------------------------------------------- test --------
 .PHONY: test
-test: ## Run the test suite (quorum_core + backend + desktop)
+test: ## Run the test suite (quorum_core + desktop)
 	$(UV) run python -m pytest
 
 .PHONY: test-cov
@@ -49,25 +40,17 @@ test-cov: ## Run tests with coverage (term + htmlcov/, enforces the 70% gate)
 	$(UV) run python -m pytest --cov --cov-report=term-missing --cov-report=html
 
 # ------------------------------------------------------------------ run ---------
-.PHONY: dev-backend
-dev-backend: ## Run FastAPI with reload (http://localhost:8000)
-	cd $(BACKEND) && $(UV) run python -m uvicorn app.main:app --reload --port 8000
-
-.PHONY: dev-frontend
-dev-frontend: ## Run Vite dev server (http://localhost:5173)
-	cd $(FRONTEND) && npm run dev
-
 .PHONY: dev-desktop
 dev-desktop: ## Run the native desktop app (dev)
 	$(UV) run python -m quorum_desktop.app
 
 .PHONY: migrate
-migrate: ## Apply migrations to the backend's local SQLite
-	cd $(BACKEND) && $(UV) run python -c "from quorum_core.migrate import upgrade_to_head; upgrade_to_head()"
+migrate: ## Apply migrations to a local SQLite (./quorum.db)
+	$(UV) run python -c "from quorum_core.migrate import upgrade_to_head; upgrade_to_head()"
 
 .PHONY: revision
 revision: ## Create an Alembic autogenerate revision (m="message")
-	cd $(BACKEND) && $(UV) run alembic -c ../quorum_core/alembic.ini revision --autogenerate -m "$(m)"
+	$(UV) run alembic -c quorum_core/alembic.ini revision --autogenerate -m "$(m)"
 
 # ------------------------------------------------------------------ ci ----------
 .PHONY: check

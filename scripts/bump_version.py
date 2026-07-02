@@ -6,7 +6,6 @@ This keeps the following in lockstep with it:
 
   - pyproject.toml                          (workspace root)
   - desktop/pyproject.toml                  (quorum-desktop)
-  - backend/pyproject.toml                  (quorum-gatherer-backend)
   - quorum_core/quorum_core/__init__.py     (__version__ — drives quorum_core's
                                              dynamic hatch version)
 
@@ -28,7 +27,6 @@ ROOT = Path(__file__).resolve().parent.parent
 PYPROJECTS = [
     ROOT / "pyproject.toml",
     ROOT / "desktop" / "pyproject.toml",
-    ROOT / "backend" / "pyproject.toml",
 ]
 # quorum_core derives its version dynamically from __version__ here.
 INIT = ROOT / "quorum_core" / "quorum_core" / "__init__.py"
