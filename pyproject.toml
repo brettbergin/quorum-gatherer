@@ -2,7 +2,7 @@
 # quorum_core is the shared library; desktop is the PySide6 app built on it.
 [project]
 name = "quorum-gatherer"
-version = "0.1.8"
+version = "0.1.9"
 requires-python = ">=3.14,<3.15"
 
 [tool.uv]
