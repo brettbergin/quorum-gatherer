@@ -12,6 +12,14 @@ permissions:
 env:
   UV_PYTHON: "3.14"
 
+# Serialize per ref. On a merge, the merge commit AND the auto-bump commit both push to
+# main seconds apart; each Coverage run pushes the badge to the data branch, so without
+# this they race and the loser's push is rejected. cancel-in-progress lets the newer
+# (final) commit win instead of erroring.
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
