@@ -1983,7 +1983,7 @@ requires-dist = [
 
 [[package]]
 name = "quorum-desktop"
-version = "0.1.9"
+version = "0.1.10"
 source = { editable = "desktop" }
 dependencies = [
     { name = "platformdirs" },
@@ -2004,7 +2004,7 @@ requires-dist = [
 
 [[package]]
 name = "quorum-gatherer"
-version = "0.1.9"
+version = "0.1.10"
 source = { virtual = "." }
 
 [package.dev-dependencies]
